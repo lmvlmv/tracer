@@ -28,12 +28,21 @@ class Result(object):
         return "%s{%s}" % (self.__class__.__name__, ", ".join(map(lambda a: "%s: %s" % (a, getattr(self, a)), self.props)))
 
 class QueryResult(Result):
+
+    def __init__(self,data):
+        self.__batt_voltage = None
+        self.__pv_voltage = None
+        self.__charge_current = None
+        self.__load_on = None
+        self.__load_amps = None
+        super(QueryResult, self).__init__(data)
+
     """The result of a query command."""
     props=['batt_voltage', 'pv_voltage', 'load_amps', 'batt_overdischarge_voltage', 'batt_full_voltage', 'load_on', 'load_overload', 'load_short', 'batt_overload', 'batt_overdischarge', 'batt_full', 'batt_charging', 'batt_temp', 'charge_current']
     def decode(self, data):
         """Decodes the query result, storing results as fields"""
-	if len(data) < 23:
-	    print "Not enough data. Need 23 bytes, got %d" % len(data)
+        if len(data) < 23:
+            raise Exception("Not enough data. Need 23 bytes, got {}".format(len(data)))
         self.batt_voltage = self.to_float(data[0:2])
         self.pv_voltage = self.to_float(data[2:4])
         # [4:2] reserved; always 0
@@ -51,11 +60,51 @@ class QueryResult(Result):
         self.batt_temp = data[20] - 30;
         self.charge_current = self.to_float(data[21:23])
 
+    @property
+    def batt_voltage(self):
+        return self.__batt_voltage
+    
+    @batt_voltage.setter
+    def batt_voltage(self,x):
+        self.__batt_voltage = x
+
+    @property
+    def pv_voltage(self):
+        return self.__pv_voltage
+    
+    @pv_voltage.setter
+    def pv_voltage(self,x):
+        self.__pv_voltage = x
+
+    @property
+    def charge_current(self):
+        return self.__charge_current
+    
+    @charge_current.setter
+    def charge_current(self,x):
+        self.__charge_current = x
+    
+    @property
+    def load_on(self):
+        return self.__load_on
+    
+    @load_on.setter
+    def load_on(self,x):
+        self.__load_on = x
+
+    @property
+    def batt_voltage(self):
+        return self.__batt_voltage
+    
+    @batt_voltage.setter
+    def batt_voltage(self,x):
+        self.__batt_voltage = x
+
 class Command(object):
     """A command sent to the controller"""
-    def __init__(self, code, data=bytearray()):
+    def __init__(self, code, data=None):
         self.code = code
-        self.data = data
+        self.data = bytearray(data) if data else bytearray()
     def decode_result(self, data):
         """Decodes the data, storing it in fields"""
         pass
@@ -74,7 +123,7 @@ class ManualCommand(Command):
             data = [0x01]
         else:
             data = [0x00]
-        Command.__init__(self, 0xAA, data)
+        Command.__init__(self, 0xAA, data=data)
 
 class TracerSerial(object):
     """A serial interface to the Tracer"""
